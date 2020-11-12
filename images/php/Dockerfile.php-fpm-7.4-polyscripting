@@ -1,4 +1,28 @@
+FROM golang as polyscripter
+
+COPY polyscript/src/tokenizer /polyscripting/
+COPY polyscript/scripts /polyscripting/
+
+COPY ./polyscript/src/scrambler/* /go/src/github.com/polyverse/scrambler/
+
+WORKDIR  /go/src/github.com/polyverse/scrambler
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /polyscripting/php-scrambler
+
 FROM php:7.4-fpm-buster
+
+#== Polyscripting
+ENV POLYSCRIPT_PATH "/usr/local/bin/polyscripting"
+ENV PHP_SRC_PATH "/usr/src/php"
+ENV PHP_DEPS \
+	libssl-dev \
+	pkg-config \
+	libargon2-dev \
+	libcurl4-openssl-dev \
+	libsqlite3-dev \
+	libsodium-dev \
+        libedit-dev \
+        sqlite3 \
+	libonig-dev
 
 #== NGINX version
 ARG NGINX_VERSION="~1.19"
@@ -53,6 +77,18 @@ RUN apt-get update \
   libzip-dev \
   zip \
   && rm -rf /var/lib/apt/lists/*
+
+#== Polyscripting environment
+RUN set -ex; \ 
+	apt-get update \
+	&& apt-get upgrade -y \
+        && apt-get install -y --no-install-recommends \
+	$PHP_DEPS; \
+        docker-php-source extract; \
+        cd $PHP_SRC_PATH; \
+        ./configure $(php-config --configure-options); \
+        make; \
+        make install; 
 
 # Install MailHog
 RUN wget https://github.com/mailhog/mhsendmail/releases/download/v0.2.0/mhsendmail_linux_amd64 \
