@@ -23,6 +23,7 @@ ENV PHP_DEPS \
         libedit-dev \
         sqlite3 \
 	libonig-dev
+COPY --from=polyscripter /polyscripting $POLYSCRIPT_PATH
 
 #== NGINX version
 ARG NGINX_VERSION="~1.19"
